@@ -2,6 +2,7 @@ import express from "express";
 import { v1 } from "./api/v1.js";
 import { configDotenv } from "dotenv";
 import { checkEnv } from "./checkEnv.js";
+import session from "express-session";
 
 configDotenv({ path: ".env" });
 if (!checkEnv(process.env)) throw new Error("필요한 환경변수가 없습니다");
@@ -10,6 +11,14 @@ const PORT = parseInt(process.env.PORT!);
 const app = express();
 
 app.use(express.json());
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET!,
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: false, httpOnly: true, maxAge: 1000 * 60 * 10 },
+  }),
+);
 app.use("/api/v1", v1);
 
 app.listen(PORT, () => {
