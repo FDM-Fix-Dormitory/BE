@@ -1,12 +1,16 @@
 import express, {} from "express";
-import { v1, UPLOAD_DIR } from "./api/v1.js";
+import { v1 } from "./api/v1.js";
 import { configDotenv } from "dotenv";
 import { checkEnv } from "./checkEnv.js";
 import session from "express-session";
+import { initDb } from "./db.js";
+import { seedUsers } from "./store.js";
 configDotenv({ path: ".env" });
 if (!checkEnv(process.env))
     throw new Error("필요한 환경변수가 없습니다");
 const PORT = parseInt(process.env.PORT);
+await initDb(process.env);
+await seedUsers();
 const app = express();
 app.use(express.json());
 app.use(session({
@@ -15,7 +19,6 @@ app.use(session({
     saveUninitialized: false,
     cookie: { secure: false, httpOnly: true, maxAge: 1000 * 60 * 10 },
 }));
-app.use("/uploads", express.static(UPLOAD_DIR));
 app.use("/api/v1", v1);
 app.use((req, res) => {
     res.status(404).send({ error: "존재하지 않는 경로입니다" });
