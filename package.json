@@ -5,6 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "test": "exit",
+    "dev": "tsc && node dist/index.js",
     "start": "node dist/index.js",
     "build": "tsc"
   },
@@ -15,12 +16,15 @@
   "devDependencies": {
     "@types/express": "^5.0.6",
     "@types/express-session": "^1.19.0",
-    "@types/node": "^26.6.6"
+    "@types/multer": "^2.3.0",
+    "@types/node": "^26.6.6",
+    "typescript": "^7.0.2"
   },
   "dependencies": {
     "dotenv": "^18.0.9",
     "express": "^5.3.0",
     "express-session": "^1.19.0",
+    "multer": "^2.5.0",
     "react": "^19.3.1"
   }
 }
