@@ -113,6 +113,9 @@ describe('auth and report creation against isolated MySQL', { concurrency: false
       assert.ok(missing.body.error.details.some((d: { field: string }) => d.field === 'password'));
       const extra = await request(app).post(`${base}/auth/sessions`).send({ loginId: 'student', password: 'student-pw', role: 'ADMIN' });
       assert.equal(extra.status, 422);
+      // 25자 한글은 75바이트로 bcrypt 한계(72바이트)를 넘습니다.
+      const tooLong = await request(app).post(`${base}/auth/sessions`).send({ loginId: 'student', password: '가'.repeat(25) });
+      assert.equal(tooLong.status, 422);
       const form = await request(app).post(`${base}/auth/sessions`).type('form').send('loginId=student&password=student-pw');
       assert.equal(form.status, 415);
     });
@@ -281,11 +284,19 @@ describe('auth and report creation against isolated MySQL', { concurrency: false
       assert.equal((await upload(reportId, 'student', Array(6).fill(image))).status, 400);
       const big = Buffer.concat([image, Buffer.alloc(MAX_IMAGE_BYTES)]);
       assert.equal((await upload(reportId, 'student', [big])).status, 413);
+      const exact = Buffer.concat([image, Buffer.alloc(MAX_IMAGE_BYTES - image.length)]);
+      assert.equal((await upload(reportId, 'student', [exact])).status, 201);
+      const malformed = await request(app).post(`${base}/reports/${reportId}/images`).set('Authorization', bearer('student'))
+        .set('Content-Type', 'multipart/form-data').send('--x\r\n');
+      assert.equal(malformed.status, 400);
+      const truncated = await request(app).post(`${base}/reports/${reportId}/images`).set('Authorization', bearer('student'))
+        .set('Content-Type', 'multipart/form-data; boundary=x').send('--x\r\nContent-Disposition: form-data; name="images"; filename="a.png"\r\n\r\nabc');
+      assert.equal(truncated.status, 400);
       const json = await request(app).post(`${base}/reports/${reportId}/images`).set('Authorization', bearer('student')).send({});
       assert.equal(json.status, 415);
 
       assert.equal((await upload(reportId, 'student', Array(5).fill(image))).status, 201);
-      assert.equal((await upload(reportId, 'student', Array(5).fill(image))).status, 201);
+      assert.equal((await upload(reportId, 'student', Array(4).fill(image))).status, 201);
       const over = await upload(reportId);
       assert.equal(over.status, 422);
       assert.equal(over.body.error.details[0].reason, 'TOO_MANY');

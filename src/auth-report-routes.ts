@@ -32,6 +32,19 @@ import {
 export const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
 export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 export const MAX_IMAGES_PER_REQUEST = 5;
+// bcrypt는 UTF-8 기준 앞 72바이트만 사용하므로 그보다 긴 비밀번호는 받지 않습니다.
+export const MAX_PASSWORD_BYTES = 72;
+export const passwordWithinBcryptLimit = (password: string) =>
+  Buffer.byteLength(password, "utf8") <= MAX_PASSWORD_BYTES;
+// 파서에서 나는 요청 형식 오류(busboy)입니다. 이 외의 오류는 서버 오류로 그대로 넘깁니다.
+const MULTIPART_FORMAT_ERRORS = new Set([
+  "Multipart: Boundary not found",
+  "Malformed part header",
+  "Unexpected end of form",
+  "Unexpected end of file",
+  "Malformed content type",
+  "Missing Content-Type",
+]);
 
 // 존재하지 않는 계정에도 같은 비용의 해시 비교를 수행해 계정 존재 여부가 응답 시간으로 드러나지 않게 합니다.
 const dummyHash = bcrypt.hashSync(randomBytes(16).toString("hex"), 10);
@@ -39,7 +52,13 @@ const dummyHash = bcrypt.hashSync(randomBytes(16).toString("hex"), 10);
 const loginBody = z
   .object({
     loginId: z.string().min(1).max(50),
-    password: z.string().min(1).max(200),
+    password: z
+      .string()
+      .min(1)
+      .max(200)
+      .refine(passwordWithinBcryptLimit, {
+        message: `비밀번호는 UTF-8 기준 ${MAX_PASSWORD_BYTES}바이트 이하여야 합니다.`,
+      }),
   })
   .strict();
 
@@ -81,8 +100,9 @@ const myReportsQuery = z
 
 const upload = multer({
   storage: multer.memoryStorage(),
+  // 파서는 한도에 도달하면 바로 오류를 내므로 1바이트 여유를 두고, 실제 크기는 저장 전에 다시 확인합니다.
   limits: {
-    fileSize: MAX_IMAGE_BYTES,
+    fileSize: MAX_IMAGE_BYTES + 1,
     files: MAX_IMAGES_PER_REQUEST,
     fields: 0,
   },
@@ -158,6 +178,15 @@ const receiveImages: RequestHandler = (req, res, next) => {
           "BAD_REQUEST",
           `images 필드로 이미지를 최대 ${MAX_IMAGES_PER_REQUEST}장까지 보내 주세요.`,
           [{ field: error.field ?? "images", reason: error.code }],
+        ),
+      );
+    }
+    if (error instanceof Error && MULTIPART_FORMAT_ERRORS.has(error.message)) {
+      return next(
+        new ApiError(
+          400,
+          "BAD_REQUEST",
+          "올바른 multipart/form-data 요청을 보내 주세요.",
         ),
       );
     }
@@ -296,6 +325,13 @@ export function authReportRoutes(repository: AuthReportRepository) {
       }
       const images: NewImage[] = [];
       for (const [index, file] of files.entries()) {
+        if (file.size > MAX_IMAGE_BYTES) {
+          throw new ApiError(
+            413,
+            "PAYLOAD_TOO_LARGE",
+            `이미지는 한 장당 ${MAX_IMAGE_BYTES / 1024 / 1024}MB 이하여야 합니다.`,
+          );
+        }
         const contentType = detectImageType(file.buffer);
         if (!contentType) {
           throw new ApiError(
