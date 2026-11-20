@@ -1,11 +1,17 @@
 import { createApp } from './app.js';
 import { MysqlManagementRepository } from './repository.js';
+import { MysqlAuthReportRepository } from './auth-report-repository.js';
+import { sessionResolver } from './auth.js';
 import { config } from './config.js';
 import { pool } from './db.js';
 
 async function main() {
   await pool.query('SELECT 1');
-  const app = createApp(new MysqlManagementRepository(pool), undefined, entry => console.info(JSON.stringify(entry)));
+  const authReportRepository = new MysqlAuthReportRepository(pool);
+  const app = createApp(
+    new MysqlManagementRepository(pool), sessionResolver(authReportRepository),
+    entry => console.info(JSON.stringify(entry)), authReportRepository,
+  );
   const server = app.listen(config.PORT, () => {
     console.log(`D.O.M API listening on port ${config.PORT}`);
   });

@@ -4,7 +4,12 @@ CREATE TABLE users (
   id VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin PRIMARY KEY,
   role ENUM('STUDENT','ADMIN') NOT NULL,
   display_name VARCHAR(100) NOT NULL,
-  created_at DATETIME(3) NOT NULL DEFAULT (UTC_TIMESTAMP(3))
+  -- 로그인 자격 증명(김정현 담당). 둘 다 NULL이면 로그인할 수 없는 계정입니다.
+  login_id VARCHAR(50) CHARACTER SET ascii COLLATE ascii_bin NULL,
+  password_hash VARCHAR(100) CHARACTER SET ascii COLLATE ascii_bin NULL,
+  created_at DATETIME(3) NOT NULL DEFAULT (UTC_TIMESTAMP(3)),
+  UNIQUE KEY users_login_id (login_id),
+  CONSTRAINT users_credentials CHECK ((login_id IS NULL) = (password_hash IS NULL))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE sessions (
@@ -47,6 +52,9 @@ CREATE TABLE report_images (
   report_id VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
   content_type VARCHAR(100) NOT NULL,
   storage_key VARCHAR(255) NOT NULL,
+  -- 이미지 본문을 DB에 저장합니다(storage_key = 'db:<id>'). 외부 저장소를 쓰면 NULL입니다.
+  data MEDIUMBLOB NULL,
+  byte_size INT UNSIGNED NOT NULL,
   created_at DATETIME(3) NOT NULL DEFAULT (UTC_TIMESTAMP(3)),
   FOREIGN KEY (report_id) REFERENCES reports(id),
   INDEX report_images_report (report_id, created_at, id)

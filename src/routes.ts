@@ -4,10 +4,10 @@ import { adminCard, ApiError, publicCard, requireReadable, requireRole, statuses
 import { decodeCursor, idSchema, pageKey, pageResult, pageSchema, sortSchema } from './pagination.js';
 import type { ManagementRepository } from './repository.js';
 
-/** Replace with Kim's validated-session resolver when integrating authentication. */
+/** 서버가 검증한 세션의 사용자를 돌려줍니다. 기본 구현은 `src/auth.ts`의 `sessionResolver`입니다. */
 export type SessionResolver = (request: Request) => Promise<Actor | undefined>;
 
-function parse<T>(schema: z.ZodType<T>, value: unknown, status = 400): T {
+export function parse<T>(schema: z.ZodType<T>, value: unknown, status = 400): T {
   const result = schema.safeParse(value);
   if (!result.success) {
     throw new ApiError(status, status === 422 ? 'VALIDATION_ERROR' : 'BAD_REQUEST', '요청 값을 확인해 주세요.',

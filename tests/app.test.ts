@@ -2,9 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import request from 'supertest';
 import { createApp } from '../src/app.js';
-import { unavailableRepository } from './fixtures.js';
+import { unavailableAuthRepository, unavailableRepository } from './fixtures.js';
 
-const app = createApp(unavailableRepository);
+const app = createApp(unavailableRepository, undefined, undefined, unavailableAuthRepository);
 
 test('unknown routes return JSON with a generated request ID', async () => {
   const res = await request(app).get('/missing');
@@ -37,4 +37,22 @@ test('all six APIs require authentication', async () => {
     assert.equal(res.body.error.code, 'UNAUTHORIZED');
     assert.equal(res.headers['cache-control'], 'private, no-store');
   }
+});
+
+test('auth/report APIs require authentication', async () => {
+  for (const [method, path] of [
+    ['post', '/auth/sessions/me/delete'], ['delete', '/auth/sessions/current'], ['get', '/me'], ['post', '/reports'],
+    ['get', '/me/reports'], ['post', '/reports/report_1/images'], ['get', '/report-images/image_1'],
+  ] as const) {
+    const res = await request(app)[method](`/api/v1${path}`);
+    assert.equal(res.status, 401, `${method} ${path}`);
+    assert.equal(res.body.error.code, 'UNAUTHORIZED');
+    assert.equal(res.headers['cache-control'], 'private, no-store');
+  }
+});
+
+test('login with unknown account returns 401 without touching sessions', async () => {
+  const res = await request(app).post('/api/v1/auth/sessions').send({ loginId: 'ghost', password: 'pw' });
+  assert.equal(res.status, 401);
+  assert.equal(res.body.error.code, 'INVALID_CREDENTIALS');
 });

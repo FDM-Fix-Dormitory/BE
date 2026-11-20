@@ -9,8 +9,9 @@
     "start": "node dist/server.js",
     "typecheck": "tsc -p tsconfig.test.json",
     "db:migrate": "tsx src/migrate.ts",
-    "test:integration": "tsx --test tests/mysql.integration.ts",
-    "db:seed": "tsx src/seed.ts"
+    "test:integration": "tsx --test --test-concurrency=1 tests/*.integration.ts",
+    "db:seed": "tsx src/seed.ts",
+    "user:create": "tsx src/create-user.ts"
   },
   "type": "module",
   "dependencies": {
