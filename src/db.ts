@@ -1,5 +1,5 @@
-import mysql from 'mysql2/promise';
-import { config } from './config.js';
+import mysql from "mysql2/promise";
+import { config } from "./config.js";
 
 export const pool = mysql.createPool({
   host: config.DB_HOST,
@@ -10,8 +10,8 @@ export const pool = mysql.createPool({
   connectionLimit: 10,
   waitForConnections: true,
   queueLimit: 100,
-  charset: 'utf8mb4',
-  timezone: 'Z',
+  charset: "utf8mb4",
+  timezone: "Z",
   multipleStatements: false,
   supportBigNumbers: true,
   bigNumberStrings: true,

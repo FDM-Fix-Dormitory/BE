@@ -11,7 +11,9 @@
     "db:migrate": "tsx src/migrate.ts",
     "test:integration": "tsx --test --test-concurrency=1 tests/*.integration.ts",
     "db:seed": "tsx src/seed.ts",
-    "user:create": "tsx src/create-user.ts"
+    "user:create": "tsx src/create-user.ts",
+    "lint:check": "prettier -c",
+    "lint:edit": "prettier -w"
   },
   "type": "module",
   "dependencies": {
@@ -29,6 +31,7 @@
     "@types/multer": "^2.3.0",
     "@types/node": "^26.6.6",
     "@types/supertest": "^7.2.1",
+    "prettier": "^3.10.1",
     "supertest": "^7.3.1",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2"
