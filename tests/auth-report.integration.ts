@@ -286,6 +286,8 @@ describe('auth and report creation against isolated MySQL', { concurrency: false
       assert.equal((await upload(reportId, 'student', [big])).status, 413);
       const exact = Buffer.concat([image, Buffer.alloc(MAX_IMAGE_BYTES - image.length)]);
       assert.equal((await upload(reportId, 'student', [exact])).status, 201);
+      const oneOver = Buffer.concat([exact, Buffer.alloc(1)]);
+      assert.equal((await upload(reportId, 'student', [oneOver])).status, 413);
       const malformed = await request(app).post(`${base}/reports/${reportId}/images`).set('Authorization', bearer('student'))
         .set('Content-Type', 'multipart/form-data').send('--x\r\n');
       assert.equal(malformed.status, 400);

@@ -40,13 +40,16 @@ DB 저장형 불투명 Bearer 세션입니다(신고 관리 문서의 연결 방
 { "loginId": "student1", "password": "..." }
 ```
 
+- `loginId`: 1~50자
+- `password`: 1~200자이면서 UTF-8 기준 72바이트 이하. bcrypt가 72바이트를 넘는 부분을 무시하기 때문입니다. 한글은 한 글자가 3바이트라서 24자까지 허용됩니다. `npm run user:create`도 같은 바이트 제한을 적용합니다.
+
 ```json
 { "data": { "token": "…", "tokenType": "Bearer", "expiresAt": "2026-11-20T11:00:00.000Z",
   "user": { "id": "…", "role": "STUDENT", "displayName": "신고 학생" } } }
 ```
 
 오류 응답:
-- 본문 필드 누락 또는 알 수 없는 필드: 422 `VALIDATION_ERROR`
+- 본문 필드 누락, 알 수 없는 필드, 비밀번호가 UTF-8 기준 72바이트 초과: 422 `VALIDATION_ERROR`
 - JSON이 아닌 본문: 415
 - 인증 실패: 401 `INVALID_CREDENTIALS`
 
@@ -112,8 +115,9 @@ DB 저장형 불투명 Bearer 세션입니다(신고 관리 문서의 연결 방
 
 오류 응답:
 - multipart가 아닌 본문: 415
-- 크기 초과: 413
+- 크기 초과(한 장당 5 MiB = 5,242,880바이트 초과, 정확히 5 MiB는 허용): 413
 - 장수 초과 또는 다른 필드명: 400
+- boundary 누락이나 잘린 본문 등 잘못된 multipart 형식: 400
 - 이미지가 아니거나 이미지가 0장, 신고당 10장 초과: 422
 
 ### GET /report-images/{imageId}
@@ -131,7 +135,7 @@ DB 저장형 불투명 Bearer 세션입니다(신고 관리 문서의 연결 방
 | `users` | `login_id`(UNIQUE, NULL 허용), `password_hash`(NULL 허용), 둘이 함께 NULL인지 확인하는 CHECK | 로그인. 기존 시드와 테스트처럼 자격 증명 없는 사용자도 계속 넣을 수 있습니다 |
 | `report_images` | `data MEDIUMBLOB NULL`, `byte_size INT UNSIGNED NOT NULL` | 이미지 본문을 DB에 저장합니다. `storage_key`는 `db:<id>`로 채웁니다 |
 
-이미지를 나중에 외부 저장소(S3 등)로 옮기면 `data`를 NULL로 두고 `storage_key`만 사용하면 됩니다. 관리 API의 `images()` 조회는 BLOB 컬럼을 읽지 않으므로 상세 조회 성능에는 영향이 없습니다.
+이미지를 나중에 외부 저장소(S3 등)로 옮기려면 `storage_key`로 파일을 읽는 조회 경로를 먼저 구현해야 합니다. 현재 `findImage()`는 `data IS NOT NULL`인 행만 조회하므로, 그 경로 없이 `data`만 NULL로 바꾸면 신고 상세의 `images[].url`은 그대로 노출되지만 해당 URL은 404를 반환합니다. 관리 API의 `images()` 조회는 BLOB 컬럼을 읽지 않으므로 상세 조회 성능에는 영향이 없습니다.
 
 ## 통합 전에 협의할 구현 선택
 

@@ -47,6 +47,13 @@ npm run db:seed
 npm run dev
 ```
 
+MySQL은 `CREATE TABLE`마다 암묵적으로 커밋하므로, 마이그레이션이 중간에 실패하면 앞에서 만든 테이블이 남고 다음 실행은 빈 DB 검사에서 멈춥니다. 초기 적용이 실패하면 오류 원인을 고친 뒤 **해당 DB에 보존할 데이터가 없는지 확인하고** DB를 다시 만든 다음 `db:migrate`를 처음부터 실행하세요.
+
+```sql
+DROP DATABASE <DB 이름>;
+CREATE DATABASE <DB 이름> CHARACTER SET utf8mb4;
+```
+
 선택 명령인 `db:seed`는 개발용 학생 2명(`student1`, `student2`)·관리자 1명(`admin`)·공용 신고 1건과 8시간 세션을 추가하고, 무작위 비밀번호·토큰과 신고 ID를 출력합니다. 기존 데이터를 덮어쓰지 않습니다. `NODE_ENV=development`에서만 실행할 수 있습니다.
 
 계정을 직접 만들 때는 다음을 실행하고 비밀번호를 입력합니다.
